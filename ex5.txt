@@ -1,0 +1,243 @@
+Ex.5: PL/SQL Control Structures
+
+Bakery Database 
+
+Aim:
+Consider the following relations for the Bakery database: 
+CUSTOMERS (cid, fname, lname)
+PRODUCTS (pid, flavor, food, price)
+RECEIPTS (rno, rdate, cid)
+ITEM_LIST (rno, ordinal, item)
+
+
+Schema Diagram:
+
+
+
+
+SQL> REM ***Q1: Check whether the given combination of food and flavor is available. If any one or both are not available, display the relevant message.***
+SQL> ed
+Wrote file afiedt.buf
+
+  1  DECLARE
+  2     CURSOR prod1 IS SELECT flavor, food FROM products;
+  3     food_in VARCHAR(20);
+  4     flavor_in VARCHAR(20);
+  5     fo VARCHAR(20);
+  6     fl VARCHAR(20);
+  7     rowct NUMBER;
+  8     foodfound NUMBER;
+  9     flavfound NUMBER;
+ 10  BEGIN
+ 11     flavor_in := '&flavor';
+ 12     food_in := '&food';
+ 13     SELECT COUNT(*) INTO rowct
+ 14     FROM products;
+ 15     OPEN prod1;
+ 16     FOR counter IN 1 .. rowct LOOP
+ 17             FETCH prod1 INTO fl, fo;
+ 18             IF fo = food_in THEN
+ 19                     foodfound := 1; 
+ 20             ELSE
+ 21                     foodfound := 0;
+ 22             END IF;
+ 23             IF fl = flavor_in THEN
+ 24                     flavfound := 1;
+ 25             ELSE
+ 26                     flavfound := 0;
+ 27             END IF;
+ 28             IF foodfound = 1 AND flavfound = 1 THEN
+ 29                     EXIT;
+ 30             END IF;
+ 31     END LOOP;
+ 32     IF foodfound = 1 THEN
+ 33             DBMS_OUTPUT.PUT_LINE(food_in || ' Found');
+ 34     ELSE
+ 35             DBMS_OUTPUT.PUT_LINE(food_in || ' Not Found');
+ 36     END IF;
+ 37     IF flavfound = 1 THEN
+ 38             DBMS_OUTPUT.PUT_LINE(flavor_in || ' Found');
+ 39     ELSE
+ 40             DBMS_OUTPUT.PUT_LINE(flavor_in || ' Not Found');
+ 41     END IF;
+ 42     CLOSE prod1;
+ 43* END;
+SQL> /
+Enter value for flavor: Blueberry
+old  11:    flavor_in := '&flavor';
+new  11:    flavor_in := 'Blueberry';
+Enter value for food: Cake
+old  12:    food_in := '&food';
+new  12:    food_in := 'Cake';
+Cake Not Found                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+Blueberry Found                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+
+PL/SQL procedure successfully completed.
+
+SQL> ed
+Wrote file afiedt.buf
+
+  1  DECLARE
+  2     CURSOR prod1 IS SELECT flavor, food FROM products;
+  3     food_in VARCHAR(20);
+  4     flavor_in VARCHAR(20);
+  5     fo VARCHAR(20);
+  6     fl VARCHAR(20);
+  7     rowct NUMBER;
+  8     foodfound NUMBER;
+  9     flavfound NUMBER;
+ 10  BEGIN
+ 11     flavor_in := '&flavor';
+ 12     food_in := '&food';
+ 13     SELECT COUNT(*) INTO rowct
+ 14     FROM products;
+ 15     OPEN prod1;
+ 16     FOR counter IN 1 .. rowct LOOP
+ 17             FETCH prod1 INTO fl, fo;
+ 18             IF fo = food_in THEN
+ 19                     foodfound := 1; 
+ 20             ELSE
+ 21                     foodfound := 0;
+ 22             END IF;
+ 23             IF fl = flavor_in THEN
+ 24                     flavfound := 1;
+ 25             ELSE
+ 26                     flavfound := 0;
+ 27             END IF;
+ 28             IF foodfound = 1 AND flavfound = 1 THEN
+ 29                     EXIT;
+ 30             END IF;
+ 31     END LOOP;
+ 32     IF foodfound = 1 THEN
+ 33             DBMS_OUTPUT.PUT_LINE(food_in || ' Found');
+ 34     ELSE
+ 35             DBMS_OUTPUT.PUT_LINE(food_in || ' Not Found');
+ 36     END IF;
+ 37     IF flavfound = 1 THEN
+ 38             DBMS_OUTPUT.PUT_LINE(flavor_in || ' Found');
+ 39     ELSE
+ 40             DBMS_OUTPUT.PUT_LINE(flavor_in || ' Not Found');
+ 41     END IF;
+ 42     CLOSE prod1;
+ 43* END;
+SQL> /
+Enter value for flavor: Blueberry
+old  11:    flavor_in := '&flavor';
+new  11:    flavor_in := 'Blueberry';
+Enter value for food: Cake
+old  12:    food_in := '&food';
+new  12:    food_in := 'Cake';
+Cake Not Found                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+Blueberry Found                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+
+PL/SQL procedure successfully completed.
+
+SQL> REM ***Q2: On a given date, find the number of items sold (Use Implicit cursor).***
+SQL> DECLARE
+  2     date_in DATE;
+  3     rowct NUMBER;
+  4     itemct NUMBER;
+  5  BEGIN
+  6     date_in := '&date';
+  7     itemct := 0;
+  8     FOR rec IN (SELECT * FROM receipts) LOOP
+  9             IF rec.rdate = date_in THEN
+ 10                     FOR it_rec in (SELECT * FROM item_list) LOOP
+ 11                             IF rec.rno = it_rec.rno THEN
+ 12                                     itemct := itemct + 1;
+ 13                             END IF;
+ 14                     END LOOP;
+ 15             END IF;
+ 16     END LOOP;
+ 17     DBMS_OUTPUT.PUT_LINE(itemct || ' items sold');
+ 18  END;
+ 19  /
+Enter value for date: 17-OCT-2007
+old   6:    date_in := '&date';
+new   6:    date_in := '17-OCT-2007';
+11 items sold                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+
+PL/SQL procedure successfully completed.
+
+SQL> REM ***Q3: An user desired to buy the product with the specific price. Ask the user for a price, find the food item(s) that is equal or closest to the desired price. Print the product
+SQL> REM number, food type, flavor and price. Also print the number of items that is equal or closest to the desired price.***
+SQL> DECLARE
+  2     price_in NUMBER;
+  3     CURSOR pr1 IS SELECT pid, flavor, food, price, ABS(price-price_in) diff
+  4     FROM products
+  5     ORDER BY diff;
+  6     nearest NUMBER;
+  7     rownum NUMBER;
+  8     recct NUMBER;
+  9  BEGIN
+ 10     price_in := '&price';
+ 11     nearest := 0;
+ 12     rownum := 1;
+ 13     recct := 0;
+ 14     FOR rec IN pr1 LOOP
+ 15             IF rownum = 1 THEN
+ 16                     nearest := rec.price;
+ 17                     DBMS_OUTPUT.PUT_LINE(rec.pid || ' ' || rec.flavor || ' ' || rec.food || ' ' || rec.price);
+ 18                     recct := recct + 1;
+ 19             ELSIF nearest = rec.price THEN
+ 20                     DBMS_OUTPUT.PUT_LINE(rec.pid || ' ' || rec.flavor || ' ' || rec.food || ' ' || rec.price);
+ 21                     recct := recct + 1;
+ 22             END IF;
+ 23             rownum := rownum + 1;
+ 24     END LOOP;
+ 25     DBMS_OUTPUT.PUT_LINE(recct || ' items are equal/closest to given price');
+ 26  END;
+ 27  /
+Enter value for price: 0.8
+old  10:    price_in := '&price';
+new  10:    price_in := '0.8';
+70-LEM Lemon Cookie .79                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+70-W Walnut Cookie .79                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+2 items are equal/closest to given price                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+
+PL/SQL procedure successfully completed.
+
+SQL> REM ***Q4: Display the customer name along with the details of item and its quantity ordered for the given order number. Also calculate the total quantity ordered.***
+SQL> DECLARE
+  2     rid_in NUMBER;
+  3     CURSOR db1 IS SELECT p.flavor, p.food, COUNT(*) qty
+  4     FROM products p, item_list i, receipts r
+  5     WHERE r.rno = i.rno AND i.item = p.pid AND r.rno = rid_in
+  6     GROUP BY p.flavor, p.food;
+  7     CURSOR db2 IS SELECT r.rno, c.cid, c.lname, c.fname
+  8     FROM customers c, receipts r
+  9     WHERE c.cid = r.cid;
+ 10     tempct NUMBER;
+ 11  BEGIN
+ 12     rid_in := '&rid';
+ 13     tempct := 0;
+ 14     FOR rec2 IN db2 LOOP
+ 15             IF rid_in = rec2.rno THEN
+ 16                     DBMS_OUTPUT.PUT_LINE('Customer Name: ' || rec2.lname || ' ' || rec2.fname);
+ 17                     EXIT;
+ 18             END IF;
+ 19     END LOOP;
+ 20     DBMS_OUTPUT.PUT_LINE('Ordered the following items:');
+ 21     DBMS_OUTPUT.PUT_LINE('Flavor         Food          Qty');
+ 22     FOR rec IN db1 LOOP
+ 23             tempct := tempct + rec.qty;
+ 24             DBMS_OUTPUT.PUT_LINE(rec.flavor || '   ' || rec.food || '   ' || rec.qty);
+ 25     END LOOP;
+ 26     DBMS_OUTPUT.PUT_LINE('Total Qty: ' || tempct);
+ 27  END;
+ 28  /
+Enter value for rid: 51991
+old  12:    rid_in := '&rid';
+new  12:    rid_in := '51991';
+Customer Name: RAYFORD SOPKO                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+Ordered the following items:                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+Flavor         Food          Qty                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+Truffle   Cake   1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+Apple   Pie   1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+Apple   Tart   1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+Chocolate   Tart   1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+Total Qty: 4                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+
+PL/SQL procedure successfully completed.
+
+
