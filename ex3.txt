@@ -1,0 +1,208 @@
+Ex.3: Advanced DML – Using joins, subqueries, set operations
+Bakery Database 
+Consider the following relations for the Bakery database: 
+CUSTOMERS (cid, fname, lname)
+PRODUCTS (pid, flavor, food, price)
+RECEIPTS (rno, rdate, cid)
+ITEM_LIST (rno, ordinal, item)
+• Understand the database through README_BAKERY.txt file.
+• Draw schema diagram for Bakery database.
+• Create relations with appropriate data types and integrity constraints.
+• Populate the database values using the Bakery.sql file.
+
+
+
+
+
+
+
+SQL> REM ***Q1 : Display the food details that is not purchased by any of customers. ***
+SQL> SELECT flavor, food, price
+  2  FROM products
+  3  WHERE pid NOT IN (SELECT item FROM item_list GROUP BY item);
+
+
+FLAVOR                                   FOOD                                          PRICE
+---------------------------------------- ---------------------------------------- ----------
+Chocolate                                Cake                                           8.95
+
+
+
+
+SQL> REM ***Q2 : Show the customer details who had placed more than 2 orders on the same date. ***
+SQL> SELECT fname, lname
+  2  FROM customers
+  3  WHERE cid IN (SELECT cid FROM receipts GROUP BY rdate, cid HAVING COUNT(cid) > 2);
+
+
+FNAME                                    LNAME
+---------------------------------------- ----------------------------------------
+SOPKO                                    RAYFORD
+HELING                                   RUPERT
+
+
+SQL> REM ***Q3 : Display the products details that has been ordered maximum by the customers. (use ALL) ***
+SQL> SELECT flavor, food, price
+  2  FROM products
+  3  WHERE pid = (SELECT item FROM item_list GROUP BY item HAVING COUNT(*) = (SELECT MAX(y.num)
+  4  FROM (SELECT COUNT(item) AS num FROM item_list GROUP BY item) y)
+  5  );
+
+
+FLAVOR                                   FOOD                                          PRICE
+---------------------------------------- ---------------------------------------- ----------
+Apple                                    Tart                                           3.25
+
+
+SQL> REM ***Q4: Show the number of receipts that contain the product whose price is more than the average price of its food type.***
+SQL> SELECT COUNT(UNIQUE(rno))
+  2  FROM item_list
+  3  WHERE item IN (SELECT pid FROM products p
+  4   WHERE price > (SELECT AVG(price) FROM products);
+
+
+  COUNT(UNIQUE(RNO)
+-------------------
+                78
+
+
+SQL> REM ***Q5: Display the customer details along with receipt number and date for the receipts that are dated on the last day of the receipt month.***
+SQL> SELECT c.cid, fname, lname, rno, rdate
+  2  FROM customers c, receipts r
+  3  WHERE c.cid = r.cid AND rdate = LAST_DAY(rdate);
+
+
+       CID FNAME                                    LNAME                                           RNO RDATE
+---------- ---------------------------------------- ---------------------------------------- ---------- ---------
+        11 STADICK                                  MIGDALIA                                      60270 31-OCT-07
+        19 STENZ                                    NATACHA                                       36343 31-OCT-07
+        12 MCMAHAN                                  MELLIE                                        70796 31-OCT-07
+         1 LOGAN                                    JULIET                                        85858 31-OCT-07
+         3 ESPOSITA                                 TRAVIS                                        39829 31-OCT-07
+        20 ZEME                                     STEPHEN                                       49845 31-OCT-07
+
+
+6 rows selected.
+
+
+SQL> REM ***Q6: Display the receipt number(s) and its total price for the receipt(s) that contain Twist as one among five items. Include only the receipts with total price more than $25.***
+SQL> SELECT i.rno, SUM(p.price) AS total 
+   2 FROM item_list i, products p 
+   3 WHERE i.item = p.pid AND p.food = 'Twist' 
+   4 GROUP BY i.rno 
+   5 HAVING COUNT(item) = 5 AND SUM(p.price) > 25;
+
+
+no rows selected
+
+
+SQL> REM ***Q7: Display the details (customer details, receipt number, item) for the product that was purchased by the least number of customers.***
+SQL> SELECT c.fname, c.lname, r.rno, p.flavor, p.food 
+2  FROM customers c, products p, receipts r, item_list i 
+3  WHERE c.cid = r.cid AND p.pid = i.item AND r.rno = i.rno AND i.item  4  (SELECT i.item 
+5  FROM customers c, products p, receipts r, item_list i 
+6  WHERE c.cid = r.cid AND p.pid = i.item AND r.rno = i.rno 
+7  GROUP BY i.item 
+8  HAVING COUNT(c.cid) = (SELECT MIN(COUNT(c.cid)) 
+9  FROM customers c, products p, receipts r, item_list i 
+10 WHERE c.cid = r.cid AND p.pid = i.item AND r.rno = i.rno 
+11 GROUP BY i.item));
+
+
+FNAME                     LNAME                            RNO FLAVOR	FOOD                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+---------- ------------------------- ------------------------- ---------- ---------------                                                                                                                                                                                                                                                                                                                                                                                                                           
+DOMKOWSKI                 ALMETA                         73716         CHOCOLATE
+	CROISSANT 
+HELING                    RUPERT                         95962 CHOCOLATE                 
+	CROISSANT                 
+SLINGLAND                 JOSETTE                        99994 CHOCOLATE                 
+	CROISSANT 
+DOMKOWSKI                 ALMETA                         82056 CHOCOLATE
+	CROISSANT                                                                                                                                                                                                                                                                                                                                                                                                                                     
+SOPKO                     RAYFORD                        77032 CHOCOLATE
+	CROISSANT                                                                                                                                                                                                                                                                                                                                                                                                                                     
+ZEME                      STEPHEN                        49845 CHOCOLATE
+	CROISSANT                                                                                                                                                                                                                                                                                                                                                                                                                                     
+
+
+6 rows selected.
+
+
+SQL> REM ***Q8: Display the customer details along with the receipt number who ordered all the flavors of Meringue in the same receipt.***
+SQL> SELECT c.cid, c.fname, c.lname, r.rno 
+2 FROM customers c, products p, receipts r, item_list i 
+3 WHERE c.cid = r.cid AND p.pid = i.item AND r.rno = i.rno AND r.rno IN 4 (SELECT i.rno 
+5 FROM products p, item_list i 
+6 WHERE p.pid = i.item AND p.food = 'Meringue' 
+7 GROUP BY i.rno 
+8 HAVING COUNT(i.rno) > 1);
+
+
+
+
+       CID FNAME                     LNAME                            RNO                                                                                                                                                                                                                                                                                                                                                                                                                                           
+---------- ------------------------- ------------------------- ----------                                                                                                                                                                                                                                                                                                                                                                                                                                           
+         4 ENGLEY                    SIXTA                          89638                                                                                                                                                                                                                                                                                                                                                                                                                                           
+        10 DUKELOW                   CORETTA                        75468                                                                                                                                                                                                                                                                                                                                                                                                                                           
+         8 HELING                    RUPERT                         61797                                                                                                                                                                                                                                                                                                                                                                                                                                           
+        12 MCMAHAN                   MELLIE                         85492
+
+
+
+
+SQL> REM ***Q9***
+SQL> ed
+Wrote file afiedt.buf
+
+
+  1  SELECT flavor, food, price FROM products WHERE products.food = 'Bear Claw'
+  2  UNION
+  3* SELECT flavor, food, price FROM products WHERE products.food = 'Pie'
+SQL> /
+
+
+FLAVOR                                   FOOD                                          PRICE
+---------------------------------------- ---------------------------------------- ----------
+Almond                                   Bear Claw                                      1.95
+Apple                                    Pie                                            5.25
+
+
+SQL> REM ***Q10***
+SQL> ed
+Wrote file afiedt.buf
+
+
+  1  SELECT cid FROM customers
+  2  MINUS
+  3* SELECT DISTINCT(cid) FROM receipts
+SQL> /
+
+
+no rows selected
+
+
+SQL> REM ***Q11***
+SQL> ed
+Wrote file afiedt.buf
+
+
+  1  SELECT food
+  2  FROM products
+  3  WHERE flavor = (SELECT flavor FROM products WHERE food = 'Meringue'
+  4  INTERSECT
+  5* SELECT flavor FROM products WHERE food = 'Tart')
+SQL> /
+
+
+FOOD
+----------------------------------------
+Cake
+Eclair
+Tart
+Meringue
+Croissant
+
+
+SQL>
+
+
