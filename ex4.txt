@@ -1,0 +1,251 @@
+Ex.4: Views, Sequences and Synonyms
+
+Bakery Database 
+
+Aim:
+Consider the following relations for the Bakery database: 
+CUSTOMERS (cid, fname, lname)
+PRODUCTS (pid, flavor, food, price)
+RECEIPTS (rno, rdate, cid)
+ITEM_LIST (rno, ordinal, item)
+a) To create view(s) based on table(s) or view(s) and observe its behavior while  performing update operations on it.  
+b) To create objects like sequences and synonyms. 
+
+
+Schema Diagram:
+
+
+
+
+SQL> REM ***Q1: Create a view named Blue_Flavor, which display the product details (product id,  food, price) of Blueberry flavor.***
+SQL> ed
+Wrote file AFIEDT.BUF
+
+  1  CREATE OR REPLACE VIEW Blue_Flavor AS
+  2  SELECT pid, food, price
+  3  FROM products
+  4* WHERE flavor LIKE 'Blueberry'
+  5  ;
+
+View created.
+
+SQL> SELECT * FROM Blue_Flavor;
+
+PID                                      FOOD                                          PRICE
+---------------------------------------- ---------------------------------------- ----------
+90-BLU-11                                Tart                                           3.25
+51-BLU                                   Danish                                         1.15
+
+2 rows selected.
+
+SQL> UPDATE Blue_Flavor SET food = 'Chicken' WHERE pid = '51-BLU';
+
+1 row updated.
+
+SQL> SELECT * from Blue_Flavor;
+
+PID 			    FLAVOR 	   FOOD 
+-------------------- ---------- ---------- 
+90-BLU-11            Blueberry  Tart 
+51-BLU               Blueberry  Chicken
+
+2 rows selected.
+
+SQL> REM ***Q2: Create a view named Cheap_Food, which display the details (product id, flavor,  food, price) of products with price lesser than $1. Ensure that, the price of these  food(s) should never rise above $1 through view.***
+SQL> ed
+Wrote file AFIEDT.BUF
+
+  1  CREATE OR REPLACE VIEW Cheap_Food AS
+  2  SELECT pid, flavor, food, price
+  3  FROM products
+  4  WHERE price < 1
+  5* WITH CHECK OPTION
+SQL> /
+
+View created.
+
+SQL> SELECT * FROM Cheap_Food;
+
+PID                                      FLAVOR                                   FOOD                                          PRICE
+---------------------------------------- ---------------------------------------- ---------------------------------------- ----------
+70-LEM                                   Lemon                                    Cookie                                          .79
+70-W                                     Walnut                                   Cookie                                          .79
+
+2 rows selected.
+
+SQL> UPDATE Cheap_Food SET flavor = 'Cream' WHERE pid = '70-W'; 
+
+1 row updated. 
+
+SQL> SELECT * FROM Cheap_Food; 
+
+PID                  FLAVOR     FOOD       PRICE 
+-------------------- ---------- ---------- ---------- 
+70-LEM               Lemon      Cookie     .79 
+70-W                 Cream      Cookie     .79
+
+2 rows selected.
+
+SQL> REM ***Q3: Create a view called Hot_Food that show the product id and its quantity where the same product is ordered more than once in the same receipt.***
+SQL> ed
+Wrote file AFIEDT.BUF
+
+  1  CREATE OR REPLACE VIEW Hot_Food AS
+  2  SELECT rno, item, COUNT(item) AS quantity
+  3  FROM item_list
+  4  GROUP BY rno, item
+  5* HAVING COUNT(item) > 1
+SQL> /
+
+View created.
+
+SQL> SELECT * FROM Hot_Food;
+
+       RNO ITEM                                       QUANTITY
+---------- ---------------------------------------- ----------
+     46598 70-R                                              2
+     67946 90-APR-PF                                         2
+     32565 50-APP                                            2
+     78187 51-ATW                                            2
+     52761 90-ALM-I                                          2
+     21545 90-BER-11                                         2
+     79296 90-PEC-11                                         2
+     85492 70-M-CH-DZ                                        2
+     16034 46-11                                             2
+     75468 70-M-CH-DZ                                        2
+     38157 90-CHR-11                                         2
+
+       RNO ITEM                                       QUANTITY
+---------- ---------------------------------------- ----------
+     44590 90-BLU-11                                         2
+     96761 50-CHS                                            2
+     89638 70-M-CH-DZ                                        2
+     55944 70-R                                              2
+     64553 90-APP-11                                         2
+     31874 70-MAR                                            2
+     77406 50-APR                                            2
+     36343 51-BC                                             2
+     86162 50-ALM                                            2
+
+20 rows selected.
+
+SQL> REM ***Q4: Create a view named Pie_Food that will display the details (customer lname, flavor,  receipt number and date, ordinal) who had ordered the Pie food with receipt details.***
+SQL> ed
+Wrote file AFIEDT.BUF
+
+  1  CREATE OR REPLACE VIEW Pie_Food AS
+  2  SELECT c.lname, p.flavor, r.rno, r.rdate, i.ordinal
+  3  FROM customers c, products p, receipts r, item_list i
+  4* WHERE p.food = 'Pie' AND i.rno = r.rno AND i.item = p.pid AND r.cid = c.cid
+SQL> /
+
+View created.
+
+SQL> SELECT * FROM Pie_Food
+  2  ;
+
+LNAME                                    FLAVOR                                          RNO RDATE        ORDINAL
+---------------------------------------- ---------------------------------------- ---------- --------- ----------
+RAYFORD                                  Apple                                         51991 17-OCT-07          1
+ARIANE                                   Apple                                         44798 04-OCT-07          3
+RAYFORD                                  Apple                                         29226 26-OCT-07          2
+JULIET                                   Apple                                         66227 10-OCT-07          2
+RUPERT                                   Apple                                         53376 30-OCT-07          3
+JULIET                                   Apple                                         39685 28-OCT-07          4
+CUC                                      Apple                                         50660 18-OCT-07          2
+ARIANE                                   Apple                                         39109 02-OCT-07          1
+CHARLENE                                 Apple                                         98806 15-OCT-07          3
+JOSETTE                                  Apple                                         47353 12-OCT-07          2
+JOSETTE                                  Apple                                         87454 21-OCT-07          1
+
+LNAME                                    FLAVOR                                          RNO RDATE        ORDINAL
+---------------------------------------- ---------------------------------------- ---------- --------- ----------
+TRAVIS                                   Apple                                         48647 09-OCT-07          2
+KIP                                      Apple                                         11548 21-OCT-07          2
+
+13 rows selected.
+
+SQL> REM ***Q5: Create a view Cheap_View from Cheap_Food that shows only the product id, flavor  and food.***
+SQL> ed
+Wrote file AFIEDT.BUF
+
+  1  CREATE OR REPLACE VIEW Cheap_View AS
+  2  SELECT pid, flavor, food
+  3* FROM Cheap_Food
+SQL> /
+
+View created.
+
+SQL> SELECT * FROM Cheap_View;
+
+PID                                      FLAVOR                                   FOOD
+---------------------------------------- ---------------------------------------- ----------------------------------------
+70-LEM                                   Lemon                                    Cookie
+70-W                                     Cream                                   Cookie
+
+2 rows selected.
+
+SQL> UPDATE Cheap_View SET flavor = 'Walnut' where pid = '70-W'; 
+
+1 row updated. 
+
+SQL> SELECT * FROM Cheap_View; 
+PID                  FLAVOR     FOOD 
+-------------------- ---------- ---------- 
+70-LEM               Lemon      Cookie 
+70-W                 Walnut     Cookie
+
+2 rows selected.
+
+SQL> REM ***Q6: Create a sequence named Ordinal_No_Seq which generates the ordinal number  starting from 1, increment by 1, to a maximum of 10. Include the options of cycle,  cache and order. Use this sequence to populate the item_list table for a new order.***
+SQL> CREATE SEQUENCE ono_seq
+ 2 START WITH 0
+ 3 INCREMENT BY 1
+ 4 MINVALUE 0
+ 5 MAXVALUE 10
+ 6 NOCACHE
+ 7 NOCYCLE;
+
+ Sequence created. 
+
+SQL> INSERT INTO item_list VALUES(99999, ono_seq.nextval, '45-VA');
+
+ 1 row created. 
+
+SQL> INSERT INTO item_list VALUES(99999, ono_seq.nextval, '45-VA');
+
+ 1 row created.
+
+SQL> REM ***Q7: Create a synonym named Product_details for the item_list relation. Perform the DML operations on it.***
+SQL> CREATE SYNONYM Product_details
+ 2 FOR item_list;
+
+ Synonym created.
+
+SQL> INSERT INTO Product_details VALUES(9999, 1, '45-CO');
+
+ 1 row created.
+
+SQL> DROP SYNONYM Product_details;
+
+ Synonym dropped. 
+
+SQL> DROP SEQUENCE ono_seq;
+
+ Sequence dropped. 
+
+SQL> DROP VIEW Cheap_View;
+
+ View dropped. 
+
+SQL> DROP VIEW Cheap_Food;
+
+ View dropped. 
+
+SQL> DROP VIEW Hot_Food;
+
+ View dropped
+
+SQL> 
+
+
