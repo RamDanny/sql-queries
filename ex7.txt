@@ -1,0 +1,130 @@
+Ex.7: PL/SQL Triggers
+
+Bakery Database 
+
+Aim:
+Consider the following relations for the Bakery database: 
+CUSTOMERS (cid, fname, lname)
+PRODUCTS (pid, flavor, food, price)
+RECEIPTS (rno, rdate, cid)
+ITEM_LIST (rno, ordinal, item)
+Write PL/SQL triggers for the given questions
+
+
+Schema Diagram:
+
+
+
+
+SQL> REM ***Q1: The combination of Flavor and Food determines the product id. Hence, while inserting a new instance into the Products relation, ensure that the same combination of Flavor and Food is not already available.***
+SQL> ed
+Wrote file afiedt.buf
+
+  1  CREATE OR REPLACE TRIGGER check_already
+  2  BEFORE INSERT ON products
+  3  FOR EACH ROW
+  4  DECLARE
+  5    ct number;
+  6  BEGIN
+  7    SELECT COUNT(*) INTO ct
+  8    FROM products p
+  9    WHERE :NEW.flavor = p.flavor AND :NEW.food = p.food;
+ 10    IF ct > 0 THEN
+ 11      RAISE_APPLICATION_ERROR(-20011, 'FOOD AND FLAVOR ALREADY EXIST!!!');
+ 12    END IF;
+ 13* END;
+SQL> /
+
+Trigger created.
+
+SQL> INSERT INTO products VALUES('20-CHOC-CAKE-10', 'Chocolate', 'Cake', 10);
+INSERT INTO products VALUES('20-CHOC-CAKE-10', 'Chocolate', 'Cake', 10)
+            *
+ERROR at line 1:
+ORA-20011: FOOD AND FLAVOR ALREADY EXIST!!! 
+ORA-06512: at "1082.CHECK_ALREADY", line 8 
+ORA-04088: error during execution of trigger '1082.CHECK_ALREADY'
+
+SQL> REM ***Q2: While entering an item into the item_list relation, update the amount in Receipts with the total amount for that receipt number.***
+SQL> CREATE OR REPLACE TRIGGER update_amt
+  2  AFTER INSERT ON item_list
+  3  FOR EACH ROW
+  4  DECLARE
+  5    newamt number;
+  6  BEGIN
+  7    SELECT price INTO newamt FROM products WHERE :NEW.item = pid;
+  8    UPDATE receipts SET amt = amt + newamt WHERE :NEW.rno = rno;
+  9  END;
+ 10  /
+
+Trigger created.
+
+SQL> INSERT INTO receipts VALUES(12346, '27-MAY-2022', 20, 0);
+
+1 row created.
+
+SQL> INSERT INTO item_list VALUES(12346, 1, '20-BC-C-10');
+
+1 row created.
+
+SQL> INSERT INTO item_list VALUES(12346, 2, '25-STR-9');
+
+1 row created.
+
+SQL> SELECT * FROM receipts WHERE rno = 12346;
+
+       RNO RDATE            CID        AMT                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+---------- --------- ---------- ----------                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+     12346 27-MAY-22         20       20.9
+
+SQL> REM ***Q3: Implement the following constraints for Item_list relation:
+SQL> REM a. A receipt can contain a maximum of five items only.
+SQL> REM b. A receipt should not allow an item to be purchased more than thrice.***
+SQL> CREATE OR REPLACE TRIGGER check_item_list
+  2  BEFORE INSERT ON item_list
+  3  FOR EACH ROW
+  4  DECLARE
+  5    ct number;
+  6  BEGIN
+  7    SELECT COUNT(*) INTO ct FROM item_list WHERE rno = :NEW.rno;
+  8    IF ct >= 5 THEN
+  9      RAISE_APPLICATION_ERROR(-20032, 'RECEIPT CAN HAVE MAX 5 ITEMS!!!');
+ 10    END IF;
+ 11    SELECT COUNT(*) INTO ct FROM item_list WHERE rno = :NEW.rno AND item = :NEW.item;
+ 12    IF ct >= 3 THEN
+ 13      RAISE_APPLICATION_ERROR(-20031, 'ITEM CAN BE PURCHASED MAX THRICE PER ORDER!!!');
+ 14    END IF;
+ 15  END;
+ 16  /
+
+Trigger created.
+
+SQL> INSERT INTO item_list VALUES(18129, 2, '70-TU');
+
+1 row created.
+
+SQL> INSERT INTO item_list VALUES(18129, 3, '70-TU');
+
+1 row created.
+
+SQL> INSERT INTO item_list VALUES(18129, 4, '70-TU');
+INSERT INTO item_list VALUES(18129, 4, '70-TU')
+            *
+ERROR at line 1:
+ORA-20031: ITEM CAN BE PURCHASED MAX THRICE PER ORDER!!! 
+ORA-06512: at "1082.CHECK_ITEM_LIST", line 10 
+ORA-04088: error during execution of trigger '1082.CHECK_ITEM_LIST'
+
+SQL> INSERT INTO ITEM_LIST VALUES(55944, 6, '50-CHS');
+INSERT INTO ITEM_LIST VALUES(55944, 6, '50-CHS')
+            *
+ERROR at line 1:
+ORA-20032: RECEIPT CAN HAVE MAX 5 ITEMS!!! 
+ORA-06512: at "1082.CHECK_ITEM_LIST", line 6 
+ORA-04088: error during execution of trigger '1082.CHECK_ITEM_LIST'
+
+SQL> 
+SQL> 
+
+
+
