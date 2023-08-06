@@ -1,0 +1,228 @@
+Ex.1:  DDL for Mail Order Database
+
+Mail Order Database
+ Consider a mail order database in which employees take orders for parts from customers. The 
+data requirements are summarized as follows: 
+The mail order company has employees identified by a unique employee number, their name, date of birth, pin code and city where they are located. 
+The customers of the company are identified by a unique customer number, their name, street name, pin code, city where they are located, date of birth and a phone number.
+The parts being sold by the company are identified by a unique part number, a part name, their price, and quantity on hand. 
+Orders placed by customers are taken by employees and are given a unique order number. Each order may contain certain quantities of one or more parts and their received date as well as a shipped date is recorded.
+
+Schema Diagram
+
+
+
+
+Create the relations with the above mentioned specifications and also consider the 
+following constraints:
+1. Identify the primary key(s) and foreign key(s) from the schema.
+2. Ensure that order number begins with O, similarly customer number with C, 
+employee number with E and part number with P.
+3. The phone numbers of the customers should not be identical to each other.
+4. The quantity ordered should not be zero.
+5. Order received date should always be less than the shipped date.
+6. The price of the part should compulsorily contain some value.
+
+CREATE TABLE Location( 
+Pincode NUMBER(6), 
+City VARCHAR2(20), 
+CONSTRAINT loc_pk PRIMARY KEY(Pincode));
+
+
+CREATE TABLE Employee( 
+E_No VARCHAR2(4), 
+Name VARCHAR2(20), 
+Dob DATE, 
+Pincode NUMBER(6), 
+CONSTRAINT emp_pk PRIMARY KEY(E_No), 
+CONSTRAINT emp_pin_fk FOREIGN KEY(Pincode) 
+REFERENCES Location(Pincode), 
+CONSTRAINT emp_eno CHECK(SUBSTR(E_No, 1, 1) = 'E'));
+
+
+CREATE TABLE Customer( 
+C_No VARCHAR2(4), 
+Name VARCHAR2(20), 
+Dob DATE, 
+Street VARCHAR(20), 
+Pincode NUMBER(6), 
+Phone NUMBER(10), 
+CONSTRAINT cust_pk PRIMARY KEY(C_No), 
+CONSTRAINT cust_pin_fk FOREIGN KEY(Pincode) 
+REFERENCES Location(Pincode), 
+CONSTRAINT cust_phone UNIQUE(Phone), 
+CONSTRAINT cust_cno CHECK(SUBSTR(C_No, 1, 1) = 'C'));
+
+
+CREATE TABLE Parts( 
+P_No VARCHAR2(4), 
+Name VARCHAR2(20), 
+Price NUMBER NOT NULL, 
+Qty NUMBER, 
+CONSTRAINT pt_pk PRIMARY KEY(P_No), 
+CONSTRAINT pt_pno CHECK(SUBSTR(P_No, 1, 1) = 'P'), 
+CONSTRAINT pt_qty CHECK(Qty > 0));
+
+
+CREATE TABLE OrderDetails(  
+O_No VARCHAR2(4),  
+C_No VARCHAR2(4),  
+E_No VARCHAR2(4),  
+R_Date DATE,  
+S_Date DATE,  
+CONSTRAINT od_pk PRIMARY KEY(O_No),  
+CONSTRAINT od_cno_fk FOREIGN KEY(C_No)  
+REFERENCES Customer(C_No),  
+CONSTRAINT od_eno_fk FOREIGN KEY(E_No) 
+REFERENCES Employee(E_No),  
+CONSTRAINT od_ono CHECK(SUBSTR(O_No, 1, 1) = 'O'),  
+CONSTRAINT od_date CHECK(R_Date < S_Date));
+
+
+CREATE TABLE OrderPurchase( 
+O_No VARCHAR2(4), 
+P_No VARCHAR2(4), 
+Qty NUMBER, 
+CONSTRAINT op_pk PRIMARY KEY(O_No, P_No), 
+CONSTRAINT op_ono_fk FOREIGN KEY(O_No) 
+REFERENCES OrderDetails(O_No), 
+CONSTRAINT op_pno_fk FOREIGN KEY(P_No) 
+REFERENCES Parts(P_No), 
+CONSTRAINT op_qty CHECK(Qty > 0));
+
+
+INSERT INTO Employee
+    VALUES ('E1','Vishal','14-feb-2002',600004);
+
+
+INSERT INTO Customer
+    VALUES ('C1','Dan','09-oct-1989','Some Street',600001,9483728140);
+
+
+INSERT INTO Customer
+    VALUES ('C2','John','29-jan-1992','T-Nagar',600017,9983134240);
+
+
+INSERT INTO Parts
+    VALUES ('P1','Wire',50,5);
+
+
+INSERT INTO Parts
+    VALUES ('P2','Battery',69,10);
+
+
+INSERT INTO OrderDetails
+VALUES ('O1','C1','E1','15-mar-2022','17-mar-2022');
+
+
+INSERT INTO OrderDetails
+VALUES ('O2','C2','E2','9-mar-2022','17-apr-2022');
+
+
+INSERT INTO OrderPurchase
+  VALUES ('O1','P1',5);
+INSERT INTO OrderPurchase
+  VALUES ('O1','P2',1);
+INSERT INTO OrderPurchase
+  VALUES ('O2','P2',10);
+INSERT INTO OrderPurchase
+  VALUES ('O2','P2',3);
+
+The following changes have been identified due to increasing business. As a database
+designer you must accommodate these changes in your design:
+7. It is identified that the following attributes are to be included in respective relations: 
+Parts (reorder level), Employees (hiredate)
+ALTER TABLE Parts
+  ADD Reorder_lvl int;
+
+
+Table altered.
+
+
+SQL> SELECT * FROM Parts;
+
+
+PART_ P_NAME          PRICE P_QUANTITY REORDER_LVL                              
+----- ---------- ---------- ---------- -----------                              
+P1    Wire               50          5                                          
+P2    Glass            2000         10                                          
+
+
+ALTER TABLE Employee
+  ADD Hire_date date;
+
+
+Table altered.
+
+
+SQL> SELECT * FROM Employee;
+
+
+ENO   NAME                 DOB          PINCODE CITY       HIRE_DATE            
+----- -------------------- --------- ---------- ---------- ---------            
+E1    Vishal               14-FEB-02     600004 Chennai     
+
+8.  The width of a customer name is not adequate for most of the customers.
+ALTER TABLE Customer
+  MODIFY C_Name varchar(50);
+
+
+Table altered.
+
+
+SQL> DESC Customer;
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ C_NO                                      NOT NULL VARCHAR2(5)
+ C_NAME                                             VARCHAR2(50)
+ C_DOB                                              DATE
+ STREET                                             VARCHAR2(20)
+ PINCODE                                            NUMBER(38)
+ PHONE_NO                                           NUMBER(38)
+
+9.  The date­of­birth of a customer can be addressed later / removed from the schema.
+ALTER TABLE Customer
+  DROP COLUMN C_Dob;
+SQL> DESC Customer;
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ C_NO                                      NOT NULL VARCHAR2(5)
+ C_NAME                                             VARCHAR2(50)
+ STREET                                             VARCHAR2(20)
+ PINCODE                                            NUMBER(38)
+ PHONE_NO                                           NUMBER(38)
+
+
+10. An order can not be placed without the receive date.
+
+
+
+SQL> ALTER TABLE Order_Details
+  2    MODIFY R_date date NOT NULL;
+
+
+Table altered.
+
+
+SQL> DESC Order_Details;
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ ORDER_NO                                  NOT NULL VARCHAR2(5)
+ C_NO                                               VARCHAR2(5)
+ ENO                                                VARCHAR2(5)
+ R_DATE                                    NOT NULL DATE
+ SHIP_DATE      
+
+11. A customer may cancel an order or ordered part(s) may not be available in a stock. 
+Hence on removing the details of the order, ensure that all the corresponding details 
+are also deleted.
+ALTER TABLE Order_Purchase
+DROP CONSTRAINT op_ono_fk;
+
+
+ALTER TABLE Order_Purchase
+CONSTRAINT op_ono_fk FOREIGN KEY(O_No) 
+REFERENCES OrderDetails(O_No)
+ON DELETE CASCADE;
+
+
