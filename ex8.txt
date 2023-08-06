@@ -1,0 +1,123 @@
+Ex.8: PL/SQL Exceptions
+
+Bakery Database 
+
+Aim:
+Consider the following relations for the Bakery database: 
+CUSTOMERS (cid, fname, lname)
+PRODUCTS (pid, flavor, food, price)
+RECEIPTS (rno, rdate, cid)
+ITEM_LIST (rno, ordinal, item)
+Write PL/SQL exceptions for the given questions
+
+
+Schema Diagram:
+
+
+
+
+SQL> REM ***Q1: For the given receipt number, if there are no rows then display as 'No order with the given receipt <number>'. If the receipt contains more than one item, display as
+SQL> REM 'The given receipt <number> contains more than one item'. If the receipt contains single item, display as 'The given receipt <number> contains exactly one item'. Use
+SQL> REM predefined exception handling.***
+SQL> 
+SQL> DECLARE
+  2    ct NUMBER;
+  3    rno_in NUMBER(8);
+  4  BEGIN
+  5    rno_in := '&rno';
+  6    SELECT rno INTO ct FROM item_list WHERE rno_in = rno;
+  7    DBMS_OUTPUT.PUT_LINE('1 ORDERS FOUND FOR ' || rno_in || '!!!');
+  8  EXCEPTION
+  9    WHEN no_data_found THEN
+ 10      DBMS_OUTPUT.PUT_LINE('0 ORDERS FOUND FOR ' || rno_in || '!!!');
+ 11    WHEN too_many_rows THEN
+ 12      DBMS_OUTPUT.PUT_LINE('>1 ORDERS FOUND FOR ' || rno_in || '!!!');
+ 13  END;
+ 14  /
+Enter value for rno: 18129
+old   5:   rno_in := '&rno';
+new   5:   rno_in := '18129';
+1 ORDERS FOUND FOR 18129!!!                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+
+PL/SQL procedure successfully completed.
+
+SQL> ed
+Wrote file afiedt.buf
+
+  1  DECLARE
+  2    ct NUMBER;
+  3    rno_in NUMBER(8);
+  4  BEGIN
+  5    rno_in := '&rno';
+  6    SELECT rno INTO ct FROM item_list WHERE rno_in = rno;
+  7    DBMS_OUTPUT.PUT_LINE('1 ORDERS FOUND FOR ' || rno_in || '!!!');
+  8  EXCEPTION
+  9    WHEN no_data_found THEN
+ 10      DBMS_OUTPUT.PUT_LINE('0 ORDERS FOUND FOR ' || rno_in || '!!!');
+ 11    WHEN too_many_rows THEN
+ 12      DBMS_OUTPUT.PUT_LINE('>1 ORDERS FOUND FOR ' || rno_in || '!!!');
+ 13* END;
+SQL> /
+Enter value for rno: 51991
+old   5:   rno_in := '&rno';
+new   5:   rno_in := '51991';
+>1 ORDERS FOUND FOR 51991!!!                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+
+PL/SQL procedure successfully completed.
+
+SQL> ed
+Wrote file afiedt.buf
+
+  1  DECLARE
+  2    ct NUMBER;
+  3    rno_in NUMBER(8);
+  4  BEGIN
+  5    rno_in := '&rno';
+  6    SELECT rno INTO ct FROM item_list WHERE rno_in = rno;
+  7    DBMS_OUTPUT.PUT_LINE('1 ORDERS FOUND FOR ' || rno_in || '!!!');
+  8  EXCEPTION
+  9    WHEN no_data_found THEN
+ 10      DBMS_OUTPUT.PUT_LINE('0 ORDERS FOUND FOR ' || rno_in || '!!!');
+ 11    WHEN too_many_rows THEN
+ 12      DBMS_OUTPUT.PUT_LINE('>1 ORDERS FOUND FOR ' || rno_in || '!!!');
+ 13* END;
+SQL> /
+Enter value for rno: 123
+old   5:   rno_in := '&rno';
+new   5:   rno_in := '123';
+0 ORDERS FOUND FOR 123!!!                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+
+PL/SQL procedure successfully completed.
+
+SQL> REM ***Q2: While inserting the receipt details, raise an exception when the receipt date is greater than the current date.***
+SQL> CREATE OR REPLACE TRIGGER check_date
+  2  BEFORE INSERT ON receipts
+  3  FOR EACH ROW
+  4  DECLARE
+  5      today DATE;
+  6      E2 EXCEPTION;
+  7  BEGIN
+  8      SELECT CURRENT_DATE INTO today FROM DUAL;
+  9      IF :NEW.rdate > today THEN
+ 10          RAISE E2;
+ 11      END IF;
+ 12  EXCEPTION
+ 13      WHEN E2 THEN
+ 14          RAISE_APPLICATION_ERROR(-20021,'RDATE CANNOT EXCEED CURRENT DATE!!!');
+ 15  END;
+ 16  /
+
+Trigger created.
+
+SQL> INSERT INTO receipts VALUES(12345, '1-JUL-2022', 1);
+INSERT INTO receipts VALUES(12345, '1-JUL-2022', 1)
+            *
+ERROR at line 1:
+ORA-20021: RDATE CANNOT EXCEED CURRENT DATE!!! 
+ORA-06512: at "1082.CHECK_DATE", line 11 
+ORA-04088: error during execution of trigger '1082.CHECK_DATE' 
+
+SQL> 
+
+
+
